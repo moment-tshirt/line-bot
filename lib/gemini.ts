@@ -19,7 +19,7 @@ const SYSTEM_PROMPT = `<role>
 </constraints>
 
 <output_format>
-ภาษาไทยเท่านั้น ไม่ใช้ markdown
+ตอบด้วยภาษาเดียวกับที่ลูกค้าใช้ ถ้าลูกค้าถามภาษาไทยให้ตอบภาษาไทย ถ้าลูกค้าถามภาษาอังกฤษให้ตอบภาษาอังกฤษ ไม่ใช้ markdown
 </output_format>
 
 <default_message>
