@@ -1,7 +1,6 @@
 {
-  "framework": "nextjs",
   "crons": [
     { "path": "/api/cron/daily-summary", "schedule": "0 6 * * *" },
-    { "path": "/api/cron/check-pending", "schedule": "*/30 1-10 * * 1-6" }
+    { "path": "/api/cron/check-pending", "schedule": "0 4 * * *" }
   ]
 }
