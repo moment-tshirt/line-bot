@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { validateSignature, messagingApi, webhook } from "@line/bot-sdk";
+import { validateSignature, messagingApi } from "@line/bot-sdk";
 import { getFAQ } from "@/lib/sheet";
 import { askGemini } from "@/lib/gemini";
+
+interface LineEvent {
+  type: string;
+  replyToken?: string;
+  message?: {
+    type: string;
+    text?: string;
+  };
+}
+
+interface LineWebhookBody {
+  events: LineEvent[];
+}
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -12,16 +25,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
-  const parsed = JSON.parse(body) as webhook.WebhookRequestBody;
+  const parsed = JSON.parse(body) as LineWebhookBody;
   const client = new messagingApi.MessagingApiClient({
     channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN ?? "",
   });
 
   for (const event of parsed.events) {
-    if (event.type !== "message" || event.message.type !== "text") continue;
+    if (event.type !== "message" || event.message?.type !== "text") continue;
 
-    const userText = event.message.text;
-    const replyToken = event.replyToken;
+    const userText = event.message.text ?? "";
+    const replyToken = event.replyToken ?? "";
 
     try {
       const faqContent = await getFAQ();
