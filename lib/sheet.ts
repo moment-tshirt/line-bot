@@ -19,10 +19,10 @@ export async function getFAQ(): Promise<string> {
 
   const parsed = lines
     .map((line) => {
-      // Simple CSV split — assumes no commas inside cell values
       const cols = line.split(",");
-      const question = cols[0]?.trim();
-      const answer = cols[1]?.trim();
+      // Sheet columns: A=หมวด, B=คำถาม, C=คำตอบ
+      const question = cols[1]?.trim();
+      const answer = cols[2]?.trim();
       if (!question || !answer) return null;
       return `Q: ${question}\nA: ${answer}`;
     })
