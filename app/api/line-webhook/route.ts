@@ -12,6 +12,31 @@ import {
   OrderState,
 } from "@/lib/gsheets";
 
+// userId → "YYYY-MM-DD" (Bangkok date) when off-hours was last notified
+const offHoursNotified = new Map<string, string>();
+
+function getBangkokDateString(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
+}
+
+function isOffHours(): boolean {
+  const now = new Date();
+  const bkk = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Bangkok" }));
+  const day = bkk.getDay(); // 0=Sun, 6=Sat
+  const hour = bkk.getHours();
+  const minute = bkk.getMinutes();
+  if (day === 0) return true; // Sunday
+  const totalMin = hour * 60 + minute;
+  return totalMin < 8 * 60 + 30 || totalMin >= 17 * 60;
+}
+
+function getOffHoursSuffix(isEnglish: boolean): string {
+  if (isEnglish) {
+    return "\n\nJust so you know, we're currently outside business hours 🕐 You can still chat with us here, or email moment.tshirt@gmail.com 😊";
+  }
+  return "\n\nอย่างไรก็ตาม ตอนนี้นอกเวลาทำการแล้วนะคะ ถ้ามีคำถามเพิ่มเติม ทักคุยกับน้องโมได้เลย หรือส่งอีเมลมาที่ moment.tshirt@gmail.com ได้นะคะ 😊";
+}
+
 const WELCOME_MESSAGE =
   "สวัสดีค่ะ ร้าน Moment T-Shirt ยินดีต้อนรับนะคะ 🎽\nมีอะไรให้น้องโมช่วยได้เลยค่ะ\n(ถ้าอยากคุยกับทีมงานโดยตรง พิมพ์ \"ติดต่อเจ้าหน้าที่\" ได้เลยนะคะ)";
 
@@ -161,7 +186,17 @@ export async function POST(req: NextRequest) {
 
       // 5. FAQ via Gemini
       const faqContent = await getFAQ();
-      const reply = await askGemini(userText, faqContent);
+      const isEnglish = /[a-zA-Z]{3,}/.test(userText);
+      let reply = await askGemini(userText, faqContent);
+
+      if (isOffHours()) {
+        const today = getBangkokDateString();
+        if (offHoursNotified.get(userId) !== today) {
+          offHoursNotified.set(userId, today);
+          reply += getOffHoursSuffix(isEnglish);
+        }
+      }
+
       await client.replyMessage({
         replyToken,
         messages: [{ type: "text", text: reply }],
