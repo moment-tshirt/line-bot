@@ -36,9 +36,9 @@ function isOffHours(): boolean {
 
 function getOffHoursSuffix(isEnglish: boolean): string {
   if (isEnglish) {
-    return "\n\nJust so you know, we're currently outside business hours 🕐 You can still chat with us here, or email moment.tshirt@gmail.com 😊";
+    return "\n\nWe're currently outside business hours. Our team will get back to you as soon as possible during the next business day. Feel free to leave a message here or email us at moment.tshirt@gmail.com 😊";
   }
-  return "\n\nอย่างไรก็ตาม ตอนนี้นอกเวลาทำการแล้วนะคะ ถ้ามีคำถามเพิ่มเติม ทักคุยกับน้องโมได้เลย หรือส่งอีเมลมาที่ moment.tshirt@gmail.com ได้นะคะ 😊";
+  return "\n\nขณะนี้อยู่นอกเวลาทำการแล้วค่ะ ทางร้านจะรีบติดต่อกลับอีกครั้งในวัน/เวลาทำการถัดไป หากคุณลูกค้ามีข้อสงสัยเพิ่มเติม สามารถฝากข้อความทิ้งไว้ให้ทีมงาน หรือส่งรายละเอียดทางอีเมล moment.tshirt@gmail.com ได้เลยค่ะ";
 }
 
 const WELCOME_MESSAGE =
