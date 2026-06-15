@@ -15,6 +15,10 @@ import {
 // userId → "YYYY-MM-DD" (Bangkok date) when off-hours was last notified
 const offHoursNotified = new Map<string, string>();
 
+// displayName → expiry timestamp — bot stays silent for this customer
+const pausedUsers = new Map<string, number>();
+const PAUSE_DURATION_MS = 2 * 60 * 60 * 1000;
+
 function getBangkokDateString(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
 }
@@ -118,7 +122,7 @@ export async function POST(req: NextRequest) {
     if (event.type !== "message" || event.message?.type !== "text") continue;
     const userText = event.message.text?.trim() ?? "";
 
-    // Group chat: only handle "done [name]" command
+    // Group chat: handle "done [name]" and "pause [name]" commands
     if (isGroup) {
       if (userText.toLowerCase().startsWith("done ")) {
         const name = userText.slice(5).trim();
@@ -131,12 +135,30 @@ export async function POST(req: NextRequest) {
         } catch (err) {
           console.error("[Done] Error:", err);
         }
+      } else if (userText.toLowerCase().startsWith("pause ")) {
+        const name = userText.slice(6).trim();
+        pausedUsers.set(name, Date.now() + PAUSE_DURATION_MS);
+        await client.replyMessage({
+          replyToken,
+          messages: [{ type: "text", text: `⏸ หยุดบอทสำหรับ "${name}" 2 ชั่วโมงแล้วนะคะ` }],
+        });
       }
       continue;
     }
 
     // 1-1 chat
     try {
+      // 0. Check if staff has paused the bot for this customer
+      if (pausedUsers.size > 0) {
+        const profile = await client.getProfile(userId).catch(() => null);
+        const displayName = profile?.displayName ?? "";
+        if (displayName && pausedUsers.has(displayName)) {
+          const expiry = pausedUsers.get(displayName)!;
+          if (Date.now() < expiry) continue;
+          pausedUsers.delete(displayName);
+        }
+      }
+
       // 1. Handoff check (highest priority, clears order flow)
       if (isHandoffRequest(userText)) {
         const profile = await client.getProfile(userId).catch(() => null);
