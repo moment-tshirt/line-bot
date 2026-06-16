@@ -103,10 +103,12 @@ async function isManualChat(userId: string): Promise<boolean> {
       `https://api.line.me/v2/bot/user/${userId}/chatMode`,
       { headers: { Authorization: `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN ?? ""}` } }
     );
-    if (!res.ok) return false;
     const data = await res.json();
+    console.log("[ChatMode]", { userId, status: res.status, data });
+    if (!res.ok) return false;
     return data.chatMode === "chat";
-  } catch {
+  } catch (err) {
+    console.warn("[ChatMode] fetch error:", err);
     return false;
   }
 }
