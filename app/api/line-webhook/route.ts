@@ -19,6 +19,9 @@ const offHoursNotified = new Map<string, string>();
 const pausedUsers = new Map<string, number>();
 const PAUSE_DURATION_MS = 2 * 60 * 60 * 1000;
 
+// userId set — staff switched to manual chat via OA Manager
+const manualChatUsers = new Set<string>();
+
 function getBangkokDateString(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
 }
@@ -90,8 +93,23 @@ interface LineEvent {
   replyToken?: string;
   source?: LineSource;
   message?: { type: string; text?: string };
+  chatMode?: string;
 }
 interface LineWebhookBody { events: LineEvent[] }
+
+async function isManualChat(userId: string): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `https://api.line.me/v2/bot/user/${userId}/chatMode`,
+      { headers: { Authorization: `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN ?? ""}` } }
+    );
+    if (!res.ok) return false;
+    const data = await res.json();
+    return data.chatMode === "chat";
+  } catch {
+    return false;
+  }
+}
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -109,6 +127,13 @@ export async function POST(req: NextRequest) {
     const replyToken = event.replyToken ?? "";
     const isGroup = event.source?.type === "group";
     const userId = event.source?.userId ?? "";
+
+    // chatModeChanged event — update in-memory set
+    if (event.type === "chatModeChanged") {
+      if (event.chatMode === "chat") manualChatUsers.add(userId);
+      else manualChatUsers.delete(userId);
+      continue;
+    }
 
     // Follow event → welcome
     if (event.type === "follow") {
@@ -148,7 +173,10 @@ export async function POST(req: NextRequest) {
 
     // 1-1 chat
     try {
-      // 0. Check if staff has paused the bot for this customer
+      // 0a. Check if staff switched to manual chat via OA Manager
+      if (manualChatUsers.has(userId) || await isManualChat(userId)) continue;
+
+      // 0b. Check if staff has paused the bot via group command
       if (pausedUsers.size > 0) {
         const profile = await client.getProfile(userId).catch(() => null);
         const displayName = profile?.displayName ?? "";
